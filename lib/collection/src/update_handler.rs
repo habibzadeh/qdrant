@@ -261,7 +261,7 @@ impl UpdateHandler {
                 log::trace!(
                     "Aquired {} CPU permit for {} optimizer",
                     permit.num_cpus,
-                    optimizer.name()
+                    optimizer.name(),
                 );
 
                 let optimizer = optimizer.clone();
