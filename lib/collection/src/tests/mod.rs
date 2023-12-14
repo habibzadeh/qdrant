@@ -8,6 +8,7 @@ use std::time::Duration;
 use futures::future::join_all;
 use itertools::Itertools;
 use parking_lot::{Mutex, RwLock};
+use segment::index::hnsw_index::max_rayon_threads;
 use tempfile::Builder;
 use tokio::time::{sleep, Instant};
 
@@ -139,9 +140,15 @@ async fn test_cancel_optimization() {
     }
 
     // Assert optimizer statuses are tracked properly
+    // The optimizers try to saturate the CPU, as number of optimizat tasks we should therefore
+    // expect the amount that would fit within our CPU budget
     {
+        let expected_optimization_count = common::cpu::get_cpu_budget()
+            .div_ceil(max_rayon_threads(0))
+            .clamp(1, 3);
+
         let log = optimizers_log.lock().to_telemetry();
-        assert_eq!(log.len(), 3);
+        assert_eq!(log.len(), expected_optimization_count);
         for status in log {
             assert_eq!(status.name, "indexing");
             assert!(matches!(status.status, TrackerStatus::Cancelled(_)));
